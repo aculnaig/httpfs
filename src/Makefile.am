@@ -2,8 +2,10 @@ bin_PROGRAMS = httpfs
 
 httpfs_SOURCES = \
     httpfs.c \
+    httpfs.h \
     netfs.c
 
-httpfs_CPPFLAGS = -D_GNU_SOURCE
+AM_CPPFLAGS = -I$(top_srcdir) -D_GNU_SOURCE
+
 httpfs_CFLAGS = $(CURL_CFLAGS)
-httpfs_LDADD = $(CURL_LIBS) -lnetfs
+httpfs_LDADD = $(CURL_LIBS) -lnetfs -lihash
