@@ -166,7 +166,7 @@ error_t netfs_attempt_access(struct iouser *cred, struct node *np, int *types) {
     return EOPNOTSUPP;
 }
 
-int netfs_maxsymlins = 0; // Maximum number of symbolic links allowed in the filesystem (0 means no limit)
+int netfs_maxsymlinks = 0; // Maximum number of symbolic links allowed in the filesystem (0 means no limit)
 
 error_t netfs_attempt_link(struct iouser *user, struct node *dir, struct node *file, const char *name, int excl) {
     // Attempt to create a hard link to the specified file in the given directory with the specified name
@@ -241,6 +241,14 @@ error_t netfs_attempt_set_size(struct iouser *cred, struct node *np, loff_t size
 error_t netfs_attempt_unlink(struct iouser *user, struct node *dir, const char *name) {
     // Attempt to remove a file or directory with the given name from the specified parent directory
     // This function can be used to check if the unlink operation can be performed based on permissions, etc.
+    // For simplicity, we will just return EOPNOTSUPP (operation non supported) in this example.
+    return EOPNOTSUPP;
+}
+
+error_t netfs_report_access(struct iouser *cred, struct node *np, int *types) {
+    // Report the access permissions of the specified node for the given user credentials
+    // This function can be used to check if the user has the required access permissions for the
+    // specified node based on the requested access types (read, write, execute, etc.)
     // For simplicity, we will just return EOPNOTSUPP (operation non supported) in this example.
     return EOPNOTSUPP;
 }
