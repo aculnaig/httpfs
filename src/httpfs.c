@@ -1,5 +1,5 @@
 /*
-    https - A simple HTTP filesystem server for GNU Hurd.
+    httpfs - A simple HTTP filesystem for GNU Hurd
     Copyright (C) 2026 Gianluca Cannata <gcannata23@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
