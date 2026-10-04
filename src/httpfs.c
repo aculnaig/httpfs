@@ -38,7 +38,7 @@ char *netfs_server_version = "0.1.0";
 /* The root node of the filesystem. */
 struct node *netfs_root_node = NULL;
 
-int main(void)
+int main(int argc, char **argv)
 {
     mach_port_t bootstrap_port;
     error_t err = 0;
