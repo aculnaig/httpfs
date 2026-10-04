@@ -355,8 +355,6 @@ void netfs_node_norefs(struct node *np) {
     if (nn != NULL) {
         curl_easy_cleanup(nn->curl_handle); // Clean up the libcurl handle associated with the node
         pthread_mutex_destroy(&nn->curl_lock); // Destroy the mutex associated with the libcurl handle
-        hurd_ihash_destroy(nn->ihash_table); // Destroy the ihash table associated with the node
-        pthread_mutex_destroy(&nn->ihash_lock); // Destroy the mutex associated with the ihash table
         free(nn->url); // Free the url string associated with the node
         free(nn->name); // Free the name string associated with the node
         free(nn);
