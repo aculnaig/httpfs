@@ -1,13 +1,16 @@
 /*
-    httpfs - A simple HTTP filesystem for GNU Hurd
-    Copyright (C) 2026 Gianluca Cannata <gcannata23@gmail.com>
+    httpfs - A simple HTTP filesystem for the Hurd.
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
+    Copyright (C) 2026 Free Software Foundation, Inc.
+    Written by Gianluca Cannata <gcannata23@gmail.com>
+    This file is part of the GNU Hurd.
+
+    The GNU Hurd is free software: you can redistribute it and/or
+    modify it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
+    The GNU Hurd is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -34,37 +37,6 @@ char *netfs_server_version = "0.1.0";
 
 /* The root node of the filesystem. */
 struct node *netfs_root_node = NULL;
-
-/* Search for a file or directory in the filesystem. */
-error_t netfs_attempt_lookup(struct iouser *user, struct node *dir, const char *name, struct node **np)
-{
-    error_t err = 0;
-
-    if (dir == NULL) {
-        err = ENOENT;
-        return err;
-    }
-
-    pthread_mutex_unlock(&dir->lock);
-
-    if (name == '\0' || strcmp(name, ".") == 0) {
-        *np = dir;
-        pthread_mutex_lock(&dir->lock);
-        netfs_nref(dir);
-        pthread_mutex_unlock(&dir->lock);
-        return err;
-    }
-
-    if (strcmp(name, "..") == 0) {
-        *np = dir->parent;
-        pthread_mutex_lock(&dir->parent->lock);
-        netfs_nref(dir->parent);
-        pthread_mutex_unlock(&dir->parent->lock);
-        return err;
-    }
-
-    return err;
-}
 
 int main(void)
 {

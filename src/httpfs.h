@@ -6,10 +6,10 @@
 #include <stddef.h>
 #include <sys/types.h>
 #include <pthread.h>
-#include <curl/curl.h>
 
 #include <hurd/netfs.h>
-#include <hurd/ihash.h>
+
+#include <curl/curl.h>
 
 /*
  * HTTPFS is a simple file system that allows you to mount a remote HTTP server as a local file system.
@@ -18,9 +18,10 @@
  * struct netnode is the main structure that represents a node in the file system.
  */
  struct netnode {
-     char *url; // The URL associated with this node (for files and directories)
-     CURL *curl_handle; // libcurl handle for HTTP requests
-     pthread_mutex_t curl_lock; // Mutex for synchronizing access to the libcurl handle
+    char *name; // The name of the node (file or directory)
+    char *url; // The URL associated with this node (for files and directories)
+    CURL *curl_handle; // libcurl handle for HTTP requests
+    pthread_mutex_t curl_lock; // Mutex for synchronizing access to the libcurl handle
  };
 
  // Function prototypes for HTTPFS operations

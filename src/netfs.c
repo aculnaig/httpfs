@@ -1,6 +1,28 @@
+/*
+    Network filesystem operations for the HTTP filesystem
+
+    Copyright (C) 2026 Free Software Foundation, Inc.
+    Written by Gianluca Cannata <gcannata23@gmail.com>
+    This file is part of the GNU Hurd.
+
+    The GNU Hurd is free software: you can redistribute it and/or
+    modify it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    The GNU Hurd is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include <errno.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <sys/types.h>
@@ -25,25 +47,8 @@ error_t httpfs_init(struct netnode *root)
         curl_global_cleanup(); // Clean up libcurl if memory allocation fails
         return ENOMEM; // Return an out-of-memory error
     }
-    root->type = 1; // Directory
+
     root->name = strdup("httpfs");
-    root->parent = NULL;
-    root->next = NULL;
-
-
-    // Initialize the node cache
-    err = hurd_ihash_create(&root->ihash_table, 0);
-    if (err != 0) {
-        curl_global_cleanup(); // Clean up libcurl if node cache creation fails
-        return ENOMEM; // Return an out-of-memory error
-    }
-
-    // Initialize the mutex for synchronizing access to the node cache
-    if (pthread_mutex_init(&root->ihash_lock, NULL) != 0) {
-        hurd_ihash_destroy(root->ihash_table); // Destroy the node cache if mutex initialization fails
-        curl_global_cleanup(); // Clean up libcurl
-        return EINVAL; // Return an invalid argument error
-    }
 
     return 0; // Return success
 }
@@ -60,6 +65,102 @@ error_t httpfs_destroy(struct netnode *root)
     pthread_mutex_destroy(&root->ihash_lock);
 
     return 0; // Return success
+}
+
+/* Lookup NAME in DIR for USER; set *NODE to the found name upon return.
+ * If the name was not found, then return ENOENT. On any error, clear *NODE.
+ * (*NODE, if found, should be locked, this call should unlock DIR no matter what.)
+ */
+error_t netfs_attempt_lookup(struct iouser *user, struct node *dir, const char *name, struct node **node)
+{
+    error_t err = 0;
+
+    if (dir == NULL) {
+        err = ENOENT;
+        return err;
+    }
+
+    if (*name == '\0' || strcmp(name, ".") == 0) {
+        *node = dir;
+        pthread_mutex_lock(&dir->lock);
+        netfs_nref(dir);
+        pthread_mutex_unlock(&dir->lock);
+        return err;
+    }
+
+    if (strcmp(name, "..") == 0) {
+        *node = dir->parent;
+        pthread_mutex_lock(&dir->parent->lock);
+        netfs_nref(dir->parent);
+        pthread_mutex_unlock(&dir->parent->lock);
+        return err;
+    }
+
+    /* Get the parent node from *DIR */
+    struct netnode *parent_nn = netfs_node_netnode(dir);
+    if (parent_nn == NULL) {
+        err = ENOENT;
+        return err;
+    }
+
+    /* Make the URL of the child node*/
+    size_t child_url_len = strlen(parent_nn->url) + strlen(name) + 2;
+    char *child_url = malloc(child_url_len);
+    if (child_url == NULL) {
+        err = ENOMEM;
+        return err;
+    }
+    snprintf(child_url, child_url_len, "%s/%s", parent_nn->url, name);
+
+    /* Execute the HTTP request to verify the existence of the child node */
+    pthread_mutex_lock(&parent_nn->curl_lock);
+    CURL *curl = parent_nn->curl_handle;
+    curl_easy_setopt(curl, CURLOPT_URL, child_url);
+    curl_easy_setopt(curl, CURLOPT_NOBODY, 1L); // Perform a HEAD request to check for existence
+    CURLcode res = curl_easy_perform(curl);
+    if (res != CURL_OK) {
+        err = EIO; // Return an I/O error if the HTTP request fails
+        free(child_url);
+        pthread_mutex_unlock(&parent_nn->curl_lock);
+        return err;
+    }
+
+    long response_code = 0;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+    if (response_code != 200) {
+        err = ENOENT;
+        free(child_url);
+        pthread_mutex_unlock(&parent_nn->curl_lock);
+        return err;
+    }
+
+    pthread_mutex_unlock(&parent_nn->curl_lock);
+
+    /* Create a new netnode for the child node */
+    struct netnode *child_nn = malloc(sizeof(struct netnode));
+    if (child_nn == NULL) {
+        err = ENOMEM;
+        free(child_url);
+        return err;
+    }
+    child_nn->name = strndup(name, sizeof(name));
+    child_nn->url = strndup(child_url, child_url_len);
+    child_nn->curl_handle = curl_easy_init();
+    pthread_mutex_init(&child_nn->curl_lock, NULL);
+
+    /* Instantiate the child node */
+    struct node *child_node = netfs_make_node(child_nn);
+    if (child_node == NULL) {
+        err = ENOMEM;
+        curl_easy_cleanup(child_nn->curl_handle);
+        pthread_mutex_destroy(&child_nn->curl_lock);
+        free(child_nn->url);
+        free(child_nn->name);
+        free(child_nn);
+        return err;
+    }
+
+    return err;
 }
 
 error_t netfs_validate_stat(struct node *np, struct iouser *cred)
@@ -258,15 +359,12 @@ void netfs_node_norefs(struct node *np) {
     // This function can be used to free any resources associated with the node
     struct netnode *nn = netfs_node_netnode(np);
     if (nn != NULL) {
-        nn->url = NULL; // Clear the URL pointer before freeing the node
-        curl_easy_cleanup(nn->curl_handle); // Clean up the libcurl handle associated with the
-        // node
+        curl_easy_cleanup(nn->curl_handle); // Clean up the libcurl handle associated with the node
         pthread_mutex_destroy(&nn->curl_lock); // Destroy the mutex associated with the libcurl handle
         hurd_ihash_destroy(nn->ihash_table); // Destroy the ihash table associated with the node
         pthread_mutex_destroy(&nn->ihash_lock); // Destroy the mutex associated with the ihash table
+        free(nn->url); // Free the url string associated with the node
         free(nn->name); // Free the name string associated with the node
-        free(nn->data); // Free the data associated with the node (if any)
-        free(nn->cache); // Free the cache associated with the node (if any)
         free(nn);
     }
 
