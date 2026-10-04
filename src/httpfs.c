@@ -38,18 +38,32 @@ struct node *netfs_root_node = NULL;
 /* Search for a file or directory in the filesystem. */
 error_t netfs_attempt_lookup(struct iouser *user, struct node *dir, const char *name, struct node **np)
 {
-    return ENOENT;
-}
+    error_t err = 0;
 
-/* Clean up a node when it has no more references. */
-void netfs_node_norefs(struct node *np)
-{
-    struct netnode *nn = netfs_node_netnode(np);
-    if (nn != NULL) {
-        free(nn);
+    if (dir == NULL) {
+        err = ENOENT;
+        return err;
     }
 
-    netfs_drop_node(np);
+    pthread_mutex_unlock(&dir->lock);
+
+    if (name == '\0' || strcmp(name, ".") == 0) {
+        *np = dir;
+        pthread_mutex_lock(&dir->lock);
+        netfs_nref(dir);
+        pthread_mutex_unlock(&dir->lock);
+        return err;
+    }
+
+    if (strcmp(name, "..") == 0) {
+        *np = dir->parent;
+        pthread_mutex_lock(&dir->parent->lock);
+        netfs_nref(dir->parent);
+        pthread_mutex_unlock(&dir->parent->lock);
+        return err;
+    }
+
+    return err;
 }
 
 int main(void)
@@ -71,20 +85,11 @@ int main(void)
         error(1, err, "Failed to initialize root netnode.");
     }
 
-    /* Initialize libcurl */
-    nn_root->curl_handle = curl_easy_init();
-    if (nn_root->curl_handle == NULL) {
-        error(1, ENOMEM, "Failed to initialize libcurl handle.");
+    err = httpfs_parse_args(argc, argv, nn_root);
+    if (err != 0) {
+        free(nn_root);
+        error(1, err, "Failed to parse command-line arguments.");
     }
-
-    curl_easy_setopt(nn_root->curl_handle, CURLOPT_URL, "http://example.com"); // Set the base URL for HTTP requests
-    CURLcode curl_res = curl_easy_perform(nn_root->curl_handle);
-    if (curl_res != CURLE_OK) {
-        error(1, curl_res, "Failed to perform HTTP request: %s", curl_easy_strerror(curl_res));
-    }
-
-    /* Cleanup libcurl */
-    curl_easy_cleanup(nn_root->curl_handle);
 
     /* Create the root node */
     netfs_root_node = netfs_make_node(nn_root);

@@ -252,3 +252,23 @@ error_t netfs_report_access(struct iouser *cred, struct node *np, int *types) {
     // For simplicity, we will just return EOPNOTSUPP (operation non supported) in this example.
     return EOPNOTSUPP;
 }
+
+void netfs_node_norefs(struct node *np) {
+    // Clean up a node when it has no more references
+    // This function can be used to free any resources associated with the node
+    struct netnode *nn = netfs_node_netnode(np);
+    if (nn != NULL) {
+        nn->url = NULL; // Clear the URL pointer before freeing the node
+        curl_easy_cleanup(nn->curl_handle); // Clean up the libcurl handle associated with the
+        // node
+        pthread_mutex_destroy(&nn->curl_lock); // Destroy the mutex associated with the libcurl handle
+        hurd_ihash_destroy(nn->ihash_table); // Destroy the ihash table associated with the node
+        pthread_mutex_destroy(&nn->ihash_lock); // Destroy the mutex associated with the ihash table
+        free(nn->name); // Free the name string associated with the node
+        free(nn->data); // Free the data associated with the node (if any)
+        free(nn->cache); // Free the cache associated with the node (if any)
+        free(nn);
+    }
+
+    netfs_drop_node(np); // Drop the reference to the node in the netfs
+}
