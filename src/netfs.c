@@ -112,7 +112,7 @@ error_t netfs_attempt_lookup(struct iouser *user, struct node *dir, const char *
     curl_easy_setopt(curl, CURLOPT_URL, child_url);
     curl_easy_setopt(curl, CURLOPT_NOBODY, 1L); // Perform a HEAD request to check for existence
     CURLcode res = curl_easy_perform(curl);
-    if (res != CURL_OK) {
+    if (res != CURLE_OK) {
         err = EIO; // Return an I/O error if the HTTP request fails
         free(child_url);
         pthread_mutex_unlock(&parent_nn->curl_lock);
