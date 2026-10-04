@@ -3,6 +3,7 @@ bin_PROGRAMS = httpfs
 httpfs_SOURCES = \
     httpfs.c \
     httpfs.h \
+    argp.c \
     netfs.c
 
 AM_CPPFLAGS = -I$(top_srcdir) -D_GNU_SOURCE
