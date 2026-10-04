@@ -55,14 +55,8 @@ error_t httpfs_init(struct netnode *root)
 
 error_t httpfs_destroy(struct netnode *root)
 {
-    // Destroy the node cache
-    hurd_ihash_destroy(root->ihash_table);
-
     // Clean up libcurl
     curl_global_cleanup();
-
-    // Destroy the mutex for synchronizing access to the node cache
-    pthread_mutex_destroy(&root->ihash_lock);
 
     return 0; // Return success
 }
@@ -83,16 +77,16 @@ error_t netfs_attempt_lookup(struct iouser *user, struct node *dir, const char *
     if (*name == '\0' || strcmp(name, ".") == 0) {
         *node = dir;
         pthread_mutex_lock(&dir->lock);
-        netfs_nref(dir);
+        netfs_nref(*node);
         pthread_mutex_unlock(&dir->lock);
         return err;
     }
 
     if (strcmp(name, "..") == 0) {
-        *node = dir->parent;
-        pthread_mutex_lock(&dir->parent->lock);
-        netfs_nref(dir->parent);
-        pthread_mutex_unlock(&dir->parent->lock);
+        *node = dir;
+        pthread_mutex_lock(&dir->lock);
+        netfs_nref(*node);
+        pthread_mutex_unlock(&dir->lock);
         return err;
     }
 
