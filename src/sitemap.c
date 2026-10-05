@@ -45,6 +45,8 @@ void sitemap_node_free(struct sitemap_node *node)
         if (node->full_path)
             free(node->full_path);
 
+        pthread_mutex_destroy(&node->lock);
+
         free(node);
     }
 }
