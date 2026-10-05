@@ -1,15 +1,21 @@
-AM_CFLAGS = -std=c99 -D_POSIX_C_SOURCE=200112L -Wall -Wextra \
-            $(MHD_CFLAGS) $(CURL_CFLAGS) -I$(top_srcdir)/include
+TESTS = test_suite
+check_PROGRAMS = test_suite
 
-check_LIBRARIES = libtestharness.a
-libtestharness_a_SOURCES = test_helpers.c test_helpers.h
+test_suite_SOURCES = \
+    test_main.c \
+    test_sitemap.c
 
-check_PROGRAMS = test_full_stream test_range
+test_suite_CPPFLAGS = \
+    -I$(top_srcdir)/src \
+    $(CMOCKA_CFLAGS) \
+    $(MHD_CFLAGS) \
+    $(CURL_CFLAGS) \
+    $(XML2_CFLAGS)
 
-test_full_stream_SOURCES = test_full_stream.c
-test_full_stream_LDADD = libtestharness.a $(MHD_LIBS) $(CURL_LIBS)
+test_suite_CFLAGS = -Wall -Wextra -O0 -g
 
-test_range_SOURCES = test_range.c
-test_range_LDADD = libtestharness.a $(MHD_LIBS) $(CURL_LIBS)
-
-TESTS = $(check_PROGRAMS)
+test_suite_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(MHD_LIBS) \
+    $(CURL_LIBS) \
+    $(XML2_LIBS)

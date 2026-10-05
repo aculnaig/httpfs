@@ -3,13 +3,16 @@
 
 #define _GNU_SOURCE
 
-#include <stddef.h>
-#include <sys/types.h>
-#include <pthread.h>
+#include <curl/curl.h>
 
 #include <hurd/netfs.h>
+#include <hurd/ihash.h>
 
-#include <curl/curl.h>
+#include <pthread.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 /*
  * HTTPFS is a simple file system that allows you to mount a remote HTTP server as a local file system.
@@ -22,6 +25,15 @@
     char *url; // The URL associated with this node (for files and directories)
     CURL *curl_handle; // libcurl handle for HTTP requests
     pthread_mutex_t curl_lock; // Mutex for synchronizing access to the libcurl handle
+
+   /* Only the root node */
+   struct sitemap_node {
+      char *name;
+      int is_directory; // 1 is a directory, 0 is a file
+      struct sitemap_node *parent;
+      struct sitemap_node *children;
+      struct sitemap_node *sibiling;
+   } *sitemap_entry;
  };
 
  // Function prototypes for HTTPFS operations
