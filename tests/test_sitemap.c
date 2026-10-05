@@ -39,7 +39,7 @@ static void test_null_success(void **state)
 }
 
 /* Check if a sitemap node is created correctly. */
-static void test_sitemap_node_crate(void **state)
+static void test_sitemap_node_create(void **state)
 {
     (void) state; /* Unused */
 

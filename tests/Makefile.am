@@ -3,7 +3,8 @@ check_PROGRAMS = test_suite
 
 test_suite_SOURCES = \
     test_main.c \
-    test_sitemap.c
+    test_sitemap.c \
+    $(top_srcdir)/src/sitemap.c
 
 test_suite_CPPFLAGS = \
     -I$(top_srcdir)/src \
@@ -18,4 +19,5 @@ test_suite_LDADD = \
     $(CMOCKA_LIBS) \
     $(MHD_LIBS) \
     $(CURL_LIBS) \
-    $(XML2_LIBS)
+    $(XML2_LIBS) \
+    -lihash
