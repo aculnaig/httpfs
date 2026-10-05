@@ -19,7 +19,7 @@ bench_suite_LDADD = \
     -lpthread
 
 benchmark: bench_suite
-        @echo "Executing benchmarks..."
-        ./bench_suite
+	@echo "Executing benchmarks..."
+	./bench_suite
 
 .PHONY: benchmark
