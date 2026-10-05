@@ -26,7 +26,7 @@ struct sitemap_node {
     struct hurd_ihash children_hash;
 
     pthread_mutex_t lock; /* Mutex for thread-safe access to the sitemap node and its hash map */
-}
+};
 
 /*
  *  Allocates and initialized a new sitemap node.

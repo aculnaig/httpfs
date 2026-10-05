@@ -19,6 +19,9 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#define _GNU_SOURCE
+#define _LARGEFILE64_SOURCE
+
 #include <errno.h>
 #include <stddef.h>
 #include <stdlib.h>

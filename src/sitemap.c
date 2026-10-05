@@ -19,6 +19,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#define _GNU_SOURCE
+
 #include <error.h>
 #include "sitemap.h"
 #include <stdlib.h>
@@ -158,7 +160,7 @@ struct sitemap_node *sitemap_tree_lookup(struct sitemap_node *root, const char *
             }
             token = strtok_r(NULL, "/", &saveptr);
             continue;
-        }{
+        }
 
         struct sitemap_node *next = sitemap_node_find_child(curr, token);
 
