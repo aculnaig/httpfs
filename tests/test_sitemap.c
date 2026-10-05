@@ -45,7 +45,7 @@ static void test_sitemap_node_create(void **state)
 
     struct sitemap_node *node = sitemap_node_create("docs", "/docs", true, NULL);
 
-    assert_not_null(node);
+    assert_non_null(node);
     assert_string_equal(node->name, "docs");
     assert_string_equal(node->full_path, "/docs");
     assert_true(node->is_directory);
