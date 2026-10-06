@@ -29,10 +29,10 @@ Based on the architectural alignment interview, `httpfs` adheres to the followin
 ---
 
 ## Phase 2: Sitemap Hierarchy & `hurd_ihash` Engine (TDD)
-- [ ] **Key Hashing Algorithm (`src/sitemap.c`)**:
+- [x] **Key Hashing Algorithm (`src/sitemap.c`)**:
   - Implement DJB2 / FNV-1a hashing function for `hurd_ihash_key_t`.
   - Test collision handling and uniform distribution with `cmocka`.
-- [ ] **Node Structure & State Machine (`src/sitemap.h`)**:
+- [x] **Node Structure & State Machine (`src/sitemap.h`)**:
   - Define `struct sitemap_node` with:
     - `name`, `full_path`, `url`, `is_directory`.
     - Lifecycle state: `NODE_STATE_PENDING`, `NODE_STATE_LOADING`, `NODE_STATE_READY`, `NODE_STATE_ERROR`.
@@ -41,11 +41,11 @@ Based on the architectural alignment interview, `httpfs` adheres to the followin
     - Read-ahead cache buffer pointers (`void *read_buffer`, `size_t buffer_len`, `off_t buffer_offset`).
     - Children `struct hurd_ihash children_hash`.
     - Reference counting (`unsigned int ref_count`).
-- [ ] **Node Allocation & Hierarchy Tree Operations**:
+- [x] **Node Allocation & Hierarchy Tree Operations**:
   - Implement `sitemap_node_create()` and `sitemap_node_free()` (recursive cleanup).
   - Implement `sitemap_node_add_child()` and O(1) lookup `sitemap_node_find_child()`.
   - Implement URL path tokenizer `sitemap_insert_path()` mapping nested URLs (e.g., `/docs/api/index.html`) into directory/file hierarchies.
-- [ ] **Unit Tests (`tests/test_sitemap.c`)**:
+- [x] **Unit Tests (`tests/test_sitemap.c`)**:
   - Verify node creation, child insertion, O(1) lookup, collision resolution, and leak-free destruction.
 
 ---
