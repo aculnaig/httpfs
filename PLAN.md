@@ -15,15 +15,15 @@ Based on the architectural alignment interview, `httpfs` adheres to the followin
 ---
 
 ## Phase 1: Build System, CLI & Options Harness (`argp` / `fsysopts`)
-- [ ] **Configure & Build Flags**:
+- [x] **Configure & Build Flags**:
   - Ensure `configure.ac` checks for `libcurl`, `libxml-2.0`, `cmocka`, and `libmicrohttpd`.
   - Enforce `-DPATH_MAX=4096`, `_GNU_SOURCE`, and `_LARGEFILE64_SOURCE`.
   - Link against `-lnetfs`, `-lihash`, `-lcurl`, `-lxml2`, and `-lpthread`.
-- [ ] **Hurd Argp Integration (`src/argp.c`)**:
+- [x] **Hurd Argp Integration (`src/argp.c`)**:
   - Implement `struct argp` parser with positional target URL.
   - Implement flags: `--sitemap=<path_or_url>` (default: `/sitemap.xml`), `--user-agent=<str>`, `--timeout=<sec>`, and `--insecure` (`-k`).
   - Implement `netfs_runtime_argp` hooks to enable runtime reconfiguration via `fsysopts`.
-- [ ] **Argp Unit Tests (`tests/test_argp.c`)**:
+- [x] **Argp Unit Tests (`tests/test_argp.c`)**:
   - Verify valid/invalid URL parsing, default options, and flag overrides.
 
 ---

@@ -38,30 +38,56 @@
 
 error_t httpfs_init(struct netnode *root)
 {
-    error_t err = 0;
-    // Initialize the libcurl library
+    if (root == NULL) {
+        return EINVAL;
+    }
+
     CURLcode res = curl_global_init(CURL_GLOBAL_DEFAULT);
     if (res != CURLE_OK) {
-        return EIO; // Return an I/O error if libcurl initialization fails
+        return EIO;
     }
 
-    root = malloc(sizeof(struct netnode));
-    if (root == NULL) {
-        curl_global_cleanup(); // Clean up libcurl if memory allocation fails
-        return ENOMEM; // Return an out-of-memory error
+    root->name = strdup("/");
+    if (root->name == NULL) {
+        curl_global_cleanup();
+        return ENOMEM;
     }
 
-    root->name = strdup("httpfs");
+    root->url = strdup(httpfs_params.url ? httpfs_params.url : "");
+    if (root->url == NULL) {
+        free(root->name);
+        root->name = NULL;
+        curl_global_cleanup();
+        return ENOMEM;
+    }
 
-    return 0; // Return success
+    root->snode = NULL;
+    root->curl_handle = curl_easy_init();
+    pthread_mutex_init(&root->curl_lock, NULL);
+
+    return 0;
 }
 
 error_t httpfs_destroy(struct netnode *root)
 {
-    // Clean up libcurl
-    curl_global_cleanup();
+    if (root) {
+        if (root->curl_handle) {
+            curl_easy_cleanup(root->curl_handle);
+            root->curl_handle = NULL;
+        }
+        pthread_mutex_destroy(&root->curl_lock);
+        if (root->name) {
+            free(root->name);
+            root->name = NULL;
+        }
+        if (root->url) {
+            free(root->url);
+            root->url = NULL;
+        }
+    }
 
-    return 0; // Return success
+    curl_global_cleanup();
+    return 0;
 }
 
 /* Lookup NAME in DIR for USER; set *NODE to the found name upon return.

@@ -1,10 +1,33 @@
+/*
+    httpfs - HTTP filesystem for the Hurd
+    Header definitions
+
+    Copyright (C) 2026 Free Software Foundation, Inc.
+    Written by Gianluca Cannata <gcannata23@gmail.com>
+    This file is part of the GNU Hurd.
+
+    The GNU Hurd is free software: you can redistribute it and/or
+    modify it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    The GNU Hurd is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #ifndef HTTPFS_H
 #define HTTPFS_H
 
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 
 #include <curl/curl.h>
-
 #include <hurd/netfs.h>
 #include <hurd/ihash.h>
 
@@ -14,31 +37,26 @@
 #include <string.h>
 #include <time.h>
 
+#include "httpfs_argp.h"
+#include "sitemap.h"
+
 /*
- * HTTPFS is a simple file system that allows you to mount a remote HTTP server as a local file system.
- * It uses the libcurl library to handle HTTP requests and responses.
- *
- * struct netnode is the main structure that represents a node in the file system.
+ * struct netnode represents the translator-specific context attached
+ * to each Hurd 'struct node' (via netfs_node_netnode(np)).
  */
- struct netnode {
-    char *name; // The name of the node (file or directory)
-    char *url; // The URL associated with this node (for files and directories)
-    CURL *curl_handle; // libcurl handle for HTTP requests
-    pthread_mutex_t curl_lock; // Mutex for synchronizing access to the libcurl handle
+struct netnode {
+    char *name;                 /* Node component name */
+    char *url;                  /* Remote URL associated with this node */
+    struct sitemap_node *snode; /* Pointer to sitemap hierarchy node */
+    CURL *curl_handle;          /* Persistent libcurl handle for transfers */
+    pthread_mutex_t curl_lock;  /* Mutex synchronizing access to curl_handle */
+};
 
-   /* Only the root node */
-   struct sitemap_node {
-      char *name;
-      int is_directory; // 1 is a directory, 0 is a file
-      struct sitemap_node *parent;
-      struct sitemap_node *children;
-      struct sitemap_node *sibiling;
-   } *sitemap_entry;
- };
+/* Root node of the filesystem */
+extern struct node *netfs_root_node;
 
- // Function prototypes for HTTPFS operations
- int httpfs_init(struct netnode *root);
- int httpfs_destroy(struct netnode *root);
- int httpfs_parse_args(int argc, char **argv, struct netnode *root);
+/* Lifecycle initialization and cleanup functions */
+error_t httpfs_init(struct netnode *root);
+error_t httpfs_destroy(struct netnode *root);
 
- #endif /* HTTPFS_H */
+#endif /* HTTPFS_H */

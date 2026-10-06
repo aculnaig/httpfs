@@ -1,23 +1,39 @@
-TESTS = test_suite
-check_PROGRAMS = test_suite
+TESTS = test_argp test_sitemap
+check_PROGRAMS = test_argp test_sitemap
 
-test_suite_SOURCES = \
-    test_main.c \
+test_argp_SOURCES = \
+    test_argp.c \
+    $(top_srcdir)/src/argp.c
+
+test_argp_CPPFLAGS = \
+    -I$(top_srcdir)/src \
+    $(CMOCKA_CFLAGS) \
+    -DPATH_MAX=4096 \
+    -D_GNU_SOURCE \
+    -D_LARGEFILE64_SOURCE
+
+test_argp_CFLAGS = -Wall -Wextra -O0 -g
+test_argp_LDADD = $(CMOCKA_LIBS) -lpthread
+
+test_sitemap_SOURCES = \
     test_sitemap.c \
     $(top_srcdir)/src/sitemap.c
 
-test_suite_CPPFLAGS = \
+test_sitemap_CPPFLAGS = \
     -I$(top_srcdir)/src \
     $(CMOCKA_CFLAGS) \
     $(MHD_CFLAGS) \
     $(CURL_CFLAGS) \
-    $(XML2_CFLAGS)
+    $(XML2_CFLAGS) \
+    -DPATH_MAX=4096 \
+    -D_GNU_SOURCE \
+    -D_LARGEFILE64_SOURCE
 
-test_suite_CFLAGS = -Wall -Wextra -O0 -g
-
-test_suite_LDADD = \
+test_sitemap_CFLAGS = -Wall -Wextra -O0 -g
+test_sitemap_LDADD = \
     $(CMOCKA_LIBS) \
     $(MHD_LIBS) \
     $(CURL_LIBS) \
     $(XML2_LIBS) \
-    -lihash
+    -lihash \
+    -lpthread

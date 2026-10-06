@@ -19,7 +19,9 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 
 #include <error.h>
 #include <errno.h>
@@ -43,30 +45,37 @@ int main(int argc, char **argv)
     mach_port_t bootstrap_port;
     error_t err = 0;
 
+    /* Initialize parameters and parse CLI options */
+    httpfs_params_init(&httpfs_params);
+    err = httpfs_parse_args(argc, argv, &httpfs_params);
+    if (err != 0) {
+        httpfs_params_cleanup(&httpfs_params);
+        error(1, err, "Failed to parse command-line arguments");
+    }
+
     /* Initialize the netfs server */
     netfs_init();
 
     /* Create the root netnode */
     struct netnode *nn_root = malloc(sizeof(struct netnode));
     if (nn_root == NULL) {
-        error(1, ENOMEM, "Failed to create root netnode.");
+        httpfs_params_cleanup(&httpfs_params);
+        error(1, ENOMEM, "Failed to create root netnode");
     }
     err = httpfs_init(nn_root);
     if (err != 0) {
         free(nn_root);
-        error(1, err, "Failed to initialize root netnode.");
-    }
-
-    err = httpfs_parse_args(argc, argv, nn_root);
-    if (err != 0) {
-        free(nn_root);
-        error(1, err, "Failed to parse command-line arguments.");
+        httpfs_params_cleanup(&httpfs_params);
+        error(1, err, "Failed to initialize root netnode");
     }
 
     /* Create the root node */
     netfs_root_node = netfs_make_node(nn_root);
     if (netfs_root_node == NULL) {
-        error(1, ENOMEM, "Failed to create root node.");
+        httpfs_destroy(nn_root);
+        free(nn_root);
+        httpfs_params_cleanup(&httpfs_params);
+        error(1, ENOMEM, "Failed to create root node");
     }
 
     /* Start the netfs server */
@@ -79,12 +88,14 @@ int main(int argc, char **argv)
     /* Shutdown the netfs server */
     err = netfs_shutdown(0);
     if (err != 0) {
-        error(1, err, "Error occurred shutting down netfs.");
+        error(0, err, "Error occurred shutting down netfs");
     }
     err = httpfs_destroy(nn_root);
     if (err != 0) {
-        error(1, err, "Error occurred shutting down httpfs.");
+        error(0, err, "Error occurred shutting down httpfs");
     }
+    free(nn_root);
+    httpfs_params_cleanup(&httpfs_params);
 
     return 0;
 }
