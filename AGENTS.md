@@ -1,24 +1,31 @@
-# Agents & Roles
+# Agent Execution Guidelines: `httpfs` Development
 
-The design and development of this system architecture follow a strict division of responsibilities to ensure absolute adherence to GNU/Mach microkernel paradigms.
+## 1. Role & Operational Directives
+You are an expert low-level systems programming agent specialized in C99, POSIX, microkernel architectures (GNU/Hurd, Mach RPCs), and concurrent network programming. Your goal is to implement the `httpfs` translator following TDD principles.
 
-## 🏛️ Principal Solution Architect (AI Assistant)
-- **Background:** Authority on microkernel architectures, core GNU/Hurd libraries (`libnetfs`, `libtrivfs`, `libfshelp`, `libiohelp`), and Mach IPC.
-- **Responsibilities:**
-  - Designing RPC/POSIX interfaces to ensure optimal mapping between file system calls (e.g., `pread64`) and HTTP semantics (e.g., `GET` with `Range` headers).
-  - Defining specifications for translator stacking (`httpfs` -> `htmlfs`).
-  - Architecting deterministic testing pipelines.
-  - Conducting C code reviews focused on eliminating memory leaks in non-blocking event loops.
+## 2. Development Constraints & Coding Standards
+1. **Thread Safety First**:
+   - Always acquire `sitemap_node->lock` before reading or modifying `node->state` or accessing `node->callbacks`.
+   - Never perform blocking network calls (`libcurl`) while holding global locks.
+   - Use `pthread_cond_wait()` inside a `while()` loop to prevent spurious wakeups.
+2. **GNU/Hurd Header Idioms**:
+   - Include `<hurd/netfs.h>` and `<hurd/ihash.h>` for translator APIs.
+   - Always ensure `-DPATH_MAX=4096` and `_GNU_SOURCE` are present in build flags.
+3. **Memory Management & Zero-Copy**:
+   - Ensure every `sitemap_node_create()` call is paired with proper reference counting or recursive destruction in `sitemap_node_free()`.
+   - Clean up `hurd_ihash` tables using `hurd_ihash_destroy()`.
+4. **MIG Demuxer Awareness**:
+   - Never block the MIG worker threads indefinitely without yielding or using condition variables; doing so starves the translator process.
 
-## 🧑‍💻 Lead Systems Engineer (Human)
-- **Responsibilities:**
-  - Implementing C source code for the translators.
-  - Setting up and configuring the QEMU/Hurd environment on GitHub Actions.
-  - Integrating `libmicrohttpd` for test suite scaffolding.
-  - Low-level performance analysis and debugging (using `rpctrace` and `gdb` on Hurd).
+## 3. Command Executions & Workflow Rules
+- **Build Command**: `make` or `make -j$(nproc)`
+- **Run Unit Tests**: `make check` or `./tests/test_sitemap_node`
+- **TDD Workflow**:
+  1. Write or update a failing test in `tests/`.
+  2. Implement the minimum logic in `src/` to satisfy the test.
+  3. Verify with `make check`.
+  4. Refactor while maintaining zero memory leaks.
 
-## 🤖 CI/CD Testing Agent (GitHub Actions)
-- **Responsibilities:**
-  - Automatically spinning up mock HTTP servers (`libmicrohttpd` v1).
-  - Executing isolated POSIX test suites.
-  - Deterministically validating I/O responses and generating RPC benchmarks.
+## 4. Error Handling
+- Map all network and parsing errors to standard `errno.h` values (`ENOENT`, `EIO`, `ENOMEM`, `ETIMEDOUT`).
+- Return errors directly as `error_t` types from `netfs_attempt_*` callbacks.

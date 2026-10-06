@@ -1,19 +1,21 @@
-# Project Context & Architecture: Hurd HTTP & Content Translators
+# System Context & Architectural Architecture: `httpfs` for GNU/Hurd
 
-## Vision
-The goal of this project is the radical refactoring and evolution of the `httpfs` translator for the GNU/Hurd operating system. In alignment with the pure philosophy of the Mach microkernel and Unix design, `httpfs` must operate strictly as an agnostic transport layer. Its sole responsibility is mapping standard POSIX system calls (`read`, `write`, `seek`, `stat`) into HTTP(S) requests, exposing the remote payload as a raw byte stream and delegating all semantic content interpretation to downstream stacked translators.
+## 1. Overview
+`httpfs` is an asynchronous, reactive HTTP/HTTPS read-only filesystem translator for the GNU/Hurd operating system. It translates remote HTTP resources and site structures (indexed via `sitemap.xml`) into a local POSIX filesystem hierarchy exposed through `libnetfs`.
 
-## Architectural Paradigm: Translator Stacking
-Currently, `httpfs` violates the Single Responsibility Principle by handling HTML parsing directly. The new architecture mandates a total decoupling:
-1. **`httpfs` (Transport Layer):** Exclusively manages network I/O, connections, multiplexing, and HTTP header handling (such as `Range` headers for `seek` operations), yielding a raw byte stream.
-2. **Content-Type Translators (Parsing Layer):** Translators stacked (via `settrans`) on top of `httpfs` that interpret the raw bytes based on the payload's `Content-Type`:
-   - `htmlfs`: Dedicated translator for parsing and structured DOM navigation of HTML documents.
-   - `jsonfs`: Exposes JSON keys and values as virtual files and directories.
-   - `csvfs` / `tsvfs`: Maps CSV/TSV data into navigable POSIX directory structures.
-   - `textfs`: Dedicated plain-text handling (e.g., encoding conversions).
+## 2. Core Architecture & Design Decisions
+- **Microkernel RPC Model**: Interacts with GNU Mach and Mach Interface Generator (MIG) via `libnetfs`. RPC demultiplexing is handled by `libnetfs` using a multithreaded MIG demuxer (`netfs_server_loop()`).
+- **Reactive On-Demand Lazy Loading**: To achieve sub-millisecond startup times, node discovery and sitemap downloading are strictly deferred until `netfs_attempt_lookup` is invoked by a client process.
+- **Node State Machine**: Each `sitemap_node` maintains an internal lifecycle:
+  - `NODE_STATE_PENDING`: Discovered, but sitemap/metadata download not yet triggered.
+  - `NODE_STATE_LOADING`: Asynchronous fetch in progress via `libcurl`.
+  - `NODE_STATE_READY`: Metadata and child hierarchy populated.
+  - `NODE_STATE_ERROR`: Network or parsing error occurred (maps to POSIX error codes, e.g., `ENOENT`, `EIO`).
+- **Thread Synchronization**: Per-node `pthread_mutex_t` and `pthread_cond_t` paired with completion callback hooks (`struct completion_hook`). Multiple concurrent lookups on a `PENDING` node collapse into a single network request while secondary threads wait on the condition variable.
+- **Hierarchical Lookup Engine**: Directory nodes store child elements in an instance-isolated `hurd_ihash` table. Node lookup keys use string-hashed DJB2/FNV-1a integers (`hurd_ihash_key_t`) mapping to single path components (`char *name`), preserving O(1) step-by-step POSIX path resolution.
 
-## Testing Strategy
-System interfaces require rigorous, isolated, and deterministic testing.
-- **Determinism:** I/O and RPC tests must run in complete isolation from the external network to eliminate unpredictable network latency and external failures.
-- **Agnosticism:** Atomic test suites (unit and integration) will utilize an embedded C HTTP server built with **`libmicrohttpd`** (initially version 1, with planned migration to version 2).
-- **Automation:** Test suites will run inside virtualized GNU/Hurd environments on **GitHub Actions** workflows, ensuring automated regression testing on every commit.
+## 3. Technology Stack & Constraints
+- **Language**: C99 with GNU Extensions (`_GNU_SOURCE`, `_LARGEFILE64_SOURCE`).
+- **Target OS**: GNU/Hurd (`x86` / `x86_64`).
+- **Core Dependencies**: `libnetfs`, `libhurdihash`, `libcurl`, `libxml2` (or lightweight stream parser), `pthread`.
+- **System Constraints**: Must define `-DPATH_MAX=4096` due to non-POSIX unbounded path limits in GNU Mach headers.
