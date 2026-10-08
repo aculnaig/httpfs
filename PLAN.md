@@ -51,11 +51,11 @@ Based on the architectural alignment interview, `httpfs` adheres to the followin
 ---
 
 ## Phase 3: Streaming XML Parser for Sitemaps (`libxml2`)
-- [ ] **SAX / xmlReader Parser Implementation (`src/sitemap_xml.c`)**:
+- [x] **SAX / xmlReader Parser Implementation (`src/sitemap_xml.c`)**:
   - Implement memory-efficient stream parser for `<urlset>` containing `<url>` elements (`<loc>`, `<lastmod>`).
   - Parse ISO 8601 `<lastmod>` timestamps to POSIX `time_t`.
   - Implement detection and recursive processing for `<sitemapindex>` containing `<sitemap>` references.
-- [ ] **Parser Unit Tests (`tests/test_sitemap_xml.c`)**:
+- [x] **Parser Unit Tests (`tests/test_sitemap_xml.c`)**:
   - Test valid sitemaps, nested sitemap indexes, malformed XML, and large/streaming payloads.
 
 ---

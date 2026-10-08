@@ -7,7 +7,9 @@ httpfs_SOURCES = \
     httpfs_argp.h \
     netfs.c \
     sitemap.h \
-    sitemap.c
+    sitemap.c \
+    sitemap_xml.h \
+    sitemap_xml.c
 
 httpfs_CPPFLAGS = \
     $(CURL_CFLAGS) \
