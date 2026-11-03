@@ -1,0 +1,10 @@
+- https:// support
+- scheme-relative URL support (eg. "//example.com/")
+- query-string and fragment support
+- HTTP/1.1 support
+- HTTP/2 support
+- HTTP/3 support
+- Teach httpfs to understand HTTP status codes like re-directs, 404 not found,
+  etc.
+- Teach httpfs to look for "sitemaps".  Many sites offer a sitemap, and this
+  would be a nifty way for httpfs to allow grep-ing the entire site's contents.

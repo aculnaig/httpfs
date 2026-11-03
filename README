@@ -1,0 +1,33 @@
+INTRODUCTION:
+
+Here we describe the structure of the /http filesystem for the Hurd.
+Under the Hurd, we provide a translator called 'httpfs' which is intended
+to provide the filesystem structure.
+
+The httpfs translator accepts an URL as an argument. The underlying node of the translator can be a file or directory. This is guided by the --mode command lineoption. Default is a directory.
+
+If its a file, only file system read requests are supported on that node.
+If its a directory, we can cd into that directory and ls would list the files in the web server. A web server may provide a directory listing or it may not provide, whatever it be the case the web server always returns an HTML stream for an user request (GET command). So to get the files residing in the web server, we have to parse the incoming HTML stream to find out the anchor tags. These anchor tags point to different pages or files in the web server. These file name are extracted and filled into the node of the translator. An anchor tag can also be a pointer to an external URL, in such a case we just show that URL as a regular file so that the user can make file system read requests on that URL. In case the file is a URL, we change the name of URL by converting all the /'s with .'s so that it can be displayed in the file system.
+
+Only the root node is filled when the translator is set, subdirectories inside that are filled as on demand, i.e. when a cd or ls occurs on that particular sub directory. 
+
+The File size is now displayed as 0. One way of getting individual file sizes is sending a GET request for each file and cull the file size from Content-Length field of an HTTP response. But this may put a very heavy burden on the network, So as of now we have not incorporated this method with this http translator.
+
+The translator uses the libxml2 library for doing the parsing of HTML stream. The libxml2 provides SAX interfaces for the parser which are used for finding the begining of anchor tags <A href="i.html>. So the translator has dependency on the libxml2 library.
+
+If the connection to the Internet through a proxy, then the user must explicitly give the IP address and port of the proxy server by using the command line options --proxy and --port.
+
+Working:
+
+hurd~# settrans -a tmp/ /hurd/httpfs www.hurd-project.com/
+
+<Remember to give the / at the end of the URL, unless you are specifying a specific file like www.hurd-project.com/httpfs.html >
+
+hurd~# cd tmp/
+
+hurd~# ls -l
+
+hurd~# settrans -a tmp/ /hurd/httpfs www.hurd-project.com/ --proxy=192.168.1.103
+				--port=3126
+
+<The above command should be used in case if the access to the Internet is through a proxy server, substitute your proxies IP and port no.s>

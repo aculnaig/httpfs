@@ -1,0 +1,10 @@
+ Instead of writting our own http library we probably should use one that is
+quite complete and still actively developed.  Possiblities include libghttp or
+neon.  libghttp is available from 
+ftp://ftp.gnome.org/pub/GNOME/stable/sources/libghttp . Which is fairly complete
+and possibly (C) fsf.  libghttp itself is LGPL.
+Another possibility is neon, which is LGPL, but probably
+won't ever be (C) fsf.  neon is available from http://www.webdav.org/neon.
+neon is still actively developed and ment for webdav which are good things for
+a httpfs.  Neon currently uses openssl for ssl connections, unfortunatly we
+can't change this to use GNUtls because GNUtls is GPL'd and neon in LGPL'd.

@@ -1,0 +1,91 @@
+2013-01-25 01:50  sthibaul
+
+	* ChangeLog, http.c: 2012-09-30  Cyril Roelandt
+	  <tipecaml@gmail.com> 2013-01-25  Samuel Thibault
+	  <samuel.thibault@ens-lyon.org>
+
+		  * http.c (fill_dirnode): Fix URL parsing, add 1 to
+	  conn_req size in
+		  cases which will need an additional trailing slash.
+
+2013-01-25 01:42  sthibaul
+
+	* http.c: Reindent http.c, no code change
+
+2013-01-25 01:40  sthibaul
+
+	* ChangeLog, Makefile.am: 2013-01-25  Samuel Thibault
+	  <samuel.thibault@ens-lyon.org>
+
+		  * Makefile.am: Link -lpthread instead of -lthreads.
+
+2013-01-25 01:40  sthibaul
+
+	* ChangeLog: Add ChangeLog
+
+2013-01-25 01:36  sthibaul
+
+	* netfs.c: Switch from cthreads to  pthreads
+
+	  * netfs.c: Call pthread_mutex_lock and pthread_mutex_unlock
+	  instead of mutex_lock and mutex_unlock
+
+2013-01-14 11:47  sthibaul
+
+	* ChangeLog, Makefile.am, configure.in, httpfs.c, httpfs.h,
+	  netfs.c: 2012-09-30 Cyril Roelandt <tipecaml@gmail.com>
+
+		  * netfs.c (netfs_attempt_utimes): Copy atime and mtime
+	  timespec
+		  structures into node->nn_stat.st_atim/st_mtim.
+		  (netfs_attempt_set_size, netfs_attempt_statfs,
+	  netfs_attempt_read,
+		  netfs_attempt_write): Fix prototype.
+
+	  2006-01-12 Manuel Menal <mmenal@hurdfr.org>
+
+		  * Makefile.am (httpfs_LDADD): correct linking order to
+	  fix pthread
+		  problem.
+		  * configure.in: update, add libxml2 dependency.
+		  * httpfs.h: define HTTPFS_SERVER_NAME/VERSION.
+		  * httpfs.c: export netfs_server_{name,version}.
+
+2002-05-06 13:34  mrphython
+
+	* ChangeLog, NOTES:	* NOTES: Corrected licenses.
+
+2002-05-06 12:56  mrphython
+
+	* ChangeLog, NOTES:	* NOTES: new file.l
+
+2002-04-16 01:49  mrphython
+
+	* ChangeLog, Makefile.am, Makefile.in, httpfs.c:	 *
+	  Makefile.am: Add INCLUDES.  Configure with
+		  configure --includedir=/include/libxml2 on Debian
+	  GNU/Hurd.
+		  * httpfs.c: Ran through indent.
+		  (main): Use error to exit.  Check return values of
+	  mallocs.
+
+		  * Removed all the files in .deps
+
+2002-04-15 21:33  mrphython
+
+	* Makefile:	* Removed Makefile
+
+2002-04-15 21:25  mrphython
+
+	* AUTHORS, COPYING, ChangeLog, INSTALL, Makefile.am, Makefile.in,
+	  NEWS, README, args.c, configure.in, extract.c, http.c, httpfs.c,
+	  httpfs.h, install-sh, missing, mkinstalldirs, netfs.c, node.c,
+	  Makefile, aclocal.m4, parsehtml.c: Import httpfs
+
+2002-04-15 21:25  mrphython
+
+	* AUTHORS, COPYING, ChangeLog, INSTALL, Makefile.am, Makefile.in,
+	  NEWS, README, args.c, configure.in, extract.c, http.c, httpfs.c,
+	  httpfs.h, install-sh, missing, mkinstalldirs, netfs.c, node.c,
+	  Makefile, aclocal.m4, parsehtml.c: Initial revision
+
