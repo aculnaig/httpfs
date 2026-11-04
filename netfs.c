@@ -30,7 +30,7 @@
 #include <sys/stat.h>
 #include <sys/socket.h>
 
-#include "httpfs.h"  
+#include "globals.h"  
 
 #include <hurd/hurd_types.h>
 #include <hurd/netfs.h>

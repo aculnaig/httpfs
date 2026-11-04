@@ -2,7 +2,9 @@
 
 bin_PROGRAMS=httpfs
 
-httpfs_LDADD=$(LIBS) -lhurdbugaddr -lnetfs -lfshelp -lpthread -lports -liohelp -lshouldbeinlibc
+HTTPFS_SHARED_LIBS = -lxml2 -lpthread -lnetfs -lfshelp -lports -liohelp -lshouldbeinlibc -lhurdbugaddr
+
+httpfs_LDADD = $(HTTPFS_SHARED_LIBS) $(LIBS)
 httpfs_SOURCES=httpfs.c \
 	netfs.c \
 	args.c \
@@ -10,7 +12,9 @@ httpfs_SOURCES=httpfs.c \
 	parsehtml.c \
 	extract.c \
 	node.c \
-	httpfs.h
+	httpfs.h \
+	globals.c \
+	globals.h
 INCLUDES = -I@includedir@
 
 SUBDIRS = . tests

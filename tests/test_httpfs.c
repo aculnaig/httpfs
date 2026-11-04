@@ -26,6 +26,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
+#include <netdb.h>
 #include <microhttpd.h>
 #include <curl/curl.h>
 #include <stdarg.h>
@@ -33,25 +35,53 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
-#include "httpfs.h"
+#include "globals.h"
 
-#define TEST_PORT 8080
+struct hostent *__wrap_gethostbyname(const char *name) {
+    assert_non_null(name);
 
-char *url = NULL;
-char *ip_addr = "0.0.0.0";
-int mode = 1;
-unsigned short port = TEST_PORT;
-int debug_flag = 1;
-struct files *list_of_entries = NULL, *this_entry = NULL;
-char *dir_tok[25] = {NULL};
-int no_of_slashes = 0;
-volatile struct mapped_time_value *httpfs_maptime = NULL;
-char *netfs_server_name = HTTPFS_SERVER_NAME;
-char *netfs_server_version = HTTPFS_SERVER_VERSION;
-struct httpfs *httpfs = NULL;
+    if (strcmp(name, "www.example.com") == 0) {
+        return (struct hostent *)mock();
+    }
+
+    return (struct hostent *)mock();
+}
+
+/* http.c unit tests */
+static void test_lookup_host_1(void **state) {
+    (void) state;
+
+    struct hostent mock_hostent;
+    memset(&mock_hostent, 0, sizeof(mock_hostent));
+    mock_hostent.h_name = "www.example.com";
+
+    will_return(__wrap_gethostbyname, &mock_hostent);
+
+    struct hostent *result = NULL;
+    int ret = lookup_host("www.example.com", &result);
+
+    assert_int_equal(ret, 0);
+    assert_non_null(result);
+    assert_string_equal(result->h_name, "www.example.com");
+}
+
+static void test_lookup_host_2(void **state) {
+    (void) state;
+
+    will_return(__wrap_gethostbyname, NULL);
+
+    struct hostent *result = NULL;
+    int ret = lookup_host("invalid.url", &result);
+
+    assert_int_equal(ret, EINVAL);
+    assert_null(result);
+}
 
 int main(void) {
-    const struct CMUnitTest tests[] = {};
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_lookup_host_1),
+        cmocka_unit_test(test_lookup_host_2),
+    };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

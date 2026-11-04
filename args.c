@@ -24,7 +24,7 @@
 
 #include <hurd/netfs.h>
 
-#include "httpfs.h"
+#include "globals.h"
 
 /* Argument Parsing --Variables */
 const char *argp_program_version="Http Translator Version 0.1";

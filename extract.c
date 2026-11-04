@@ -25,7 +25,7 @@
 #include<stdlib.h>
 #include<unistd.h>
 
-#include"httpfs.h"
+#include "globals.h"
 
 int check_dups(char *name,char *parent)
 {

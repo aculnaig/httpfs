@@ -20,7 +20,7 @@
 #include <stdlib.h>
 #include <errno.h>
 
-#include "httpfs.h"
+#include "globals.h"
 
 #include <hurd/hurd_types.h>
 #include <hurd/netfs.h>

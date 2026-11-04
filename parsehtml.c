@@ -28,7 +28,7 @@
 #include <libxml/HTMLtree.h>
 #include <libxml/SAX.h>
 
-#include "httpfs.h"
+#include "globals.h"
 
 #define MAXBUF 4096
 

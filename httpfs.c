@@ -27,23 +27,7 @@
 
 #include <hurd/netfs.h>
 
-#include "httpfs.h"
-
-/* global configuration parameters */
-unsigned short port;
-int debug_flag;
-int mode;
-int no_of_slashes = 0;
-char *url, *conn_req;
-char *ip_addr;
-char *dir_tok[25];
-struct files *list_of_entries = NULL, *this_entry;
-
-struct httpfs *httpfs;		/* filesystem global pointer */
-volatile struct mapped_time_value *httpfs_maptime;
-
-char *netfs_server_name    = HTTPFS_SERVER_NAME;
-char *netfs_server_version = HTTPFS_SERVER_VERSION;
+#include "globals.h"
 
 int
 main (int argc, char **argv)

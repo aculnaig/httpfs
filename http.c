@@ -29,7 +29,7 @@
 #include <malloc.h>
 #include <stddef.h>
 
-#include "httpfs.h"
+#include "globals.h"
 
 #include <hurd/hurd_types.h>
 #include <hurd/netfs.h>
