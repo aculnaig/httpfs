@@ -12,3 +12,10 @@ httpfs_SOURCES=httpfs.c \
 	node.c \
 	httpfs.h
 INCLUDES = -I@includedir@
+
+SUBDIRS = . tests
+
+tests:
+		$(MAKE) check
+
+.PHONY: tests
