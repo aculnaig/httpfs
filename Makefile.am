@@ -2,7 +2,7 @@
 
 bin_PROGRAMS=httpfs
 
-HTTPFS_SHARED_LIBS = -lxml2 -lpthread -lnetfs -lfshelp -lports -liohelp -lshouldbeinlibc -lhurdbugaddr
+HTTPFS_SHARED_LIBS = -lcurl -lxml2 -lpthread -lnetfs -lfshelp -lports -liohelp -lshouldbeinlibc -lhurdbugaddr
 
 httpfs_LDADD = $(HTTPFS_SHARED_LIBS) $(LIBS)
 httpfs_SOURCES=httpfs.c \

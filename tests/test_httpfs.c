@@ -37,50 +37,79 @@
 
 #include "globals.h"
 
-struct hostent *__wrap_gethostbyname(const char *name) {
-    assert_non_null(name);
+/* http.c unit tests */
+void __wrap_curl_easy_cleanup(CURL *curl) {
+    (void) curl;
+}
 
-    if (strcmp(name, "www.example.com") == 0) {
-        return (struct hostent *)mock();
+CURLcode __wrap_curl_easy_setopt(CURL *curl, CURLoption option, ...) {
+    (void) curl;
+    (void) option;
+
+    return CURLE_OK;
+}
+
+CURL *__wrap_curl_easy_init() {
+    return (CURL *)mock();
+}
+
+CURLcode __wrap_curl_easy_perform(CURL *curl) {
+    return (CURLcode) mock();
+}
+
+static void test_open_connection_curl_easy_init_fails(void **state)
+{
+    (void) state;
+
+    will_return(__wrap_curl_easy_init, NULL);
+
+    error_t err = open_connection(NULL, NULL, 0, NULL);
+
+    assert_int_equal(err, ENOMEM);
+}
+
+static void test_open_connection_curl_easy_perform_fails(void **state)
+{
+    (void) state;
+
+    CURLcode curl_err = curl_global_init(CURL_GLOBAL_ALL);
+    if (curl_err != CURLE_OK) {
+        fprintf(stderr, "curl_global_init(): %s\n", curl_easy_strerror(curl_err));
+        assert_true(false);
     }
 
-    return (struct hostent *)mock();
-}
+    CURL *mock_curl = (CURL *) 0x123456789;
+    will_return(__wrap_curl_easy_init, mock_curl);
+    will_return_count(__wrap_curl_easy_setopt, CURLE_OK, -2);
+    will_return(__wrap_curl_easy_perform, CURLE_ABORTED_BY_CALLBACK);
 
-/* http.c unit tests */
-static void test_lookup_host_1(void **state) {
-    (void) state;
+    /* No proxy */
+    ip_addr = "0.0.0.0";
+    debug_flag = 1;
+    port = 8080;
 
-    struct hostent mock_hostent;
-    memset(&mock_hostent, 0, sizeof(mock_hostent));
-    mock_hostent.h_name = "www.example.com";
+    struct netnode *node = malloc(sizeof(struct netnode));
+    if (!node) {
+        fprintf(stderr, "malloc(): ENOMEM.\n");
+        assert_true(false);
+    }
 
-    will_return(__wrap_gethostbyname, &mock_hostent);
+    memset(node, 0, sizeof(struct netnode));
+    node->url = "http://localhost:8080/";
+    node->conn_req = "http://localhost:8080/";
 
-    struct hostent *result = NULL;
-    int ret = lookup_host("www.example.com", &result);
+    error_t err = open_connection(node, NULL, 0, NULL);
 
-    assert_int_equal(ret, 0);
-    assert_non_null(result);
-    assert_string_equal(result->h_name, "www.example.com");
-}
+    assert_int_equal(err, EAGAIN);
 
-static void test_lookup_host_2(void **state) {
-    (void) state;
-
-    will_return(__wrap_gethostbyname, NULL);
-
-    struct hostent *result = NULL;
-    int ret = lookup_host("invalid.url", &result);
-
-    assert_int_equal(ret, EINVAL);
-    assert_null(result);
+    free(node);
+    curl_global_cleanup();
 }
 
 int main(void) {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(test_lookup_host_1),
-        cmocka_unit_test(test_lookup_host_2),
+        cmocka_unit_test(test_open_connection_curl_easy_init_fails),
+        cmocka_unit_test(test_open_connection_curl_easy_perform_fails),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

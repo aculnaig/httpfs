@@ -98,7 +98,6 @@ error_t parse(struct netnode *node)
 	/* SAX HTML Parsing Variables */
 	htmlSAXHandlerPtr emptysax = &empty;
 	error_t err;
-	static int remote_fd;
 	off_t head_len=0,offset=0;
 	char buffer[MAXBUF];
 	int bytes_read=0;
@@ -125,20 +124,16 @@ error_t parse(struct netnode *node)
 
 	/* get the HTML stream corresponding to the directory
 	 * send a GET request */
-	err = open_connection(node,&remote_fd,&head_len);
+	err = open_connection(node, buffer, offset, &head_len);
 	if ( err )
 		return err;
-	bytes_read = pread(remote_fd,buffer,sizeof(char)*6,offset);
+	bytes_read = strlen(buffer) + head_len;
 
 	if ( bytes_read > 0 ) 
 	{
 		/* Parser operates in Push mode */
 		ctxt = htmlCreatePushParserCtxt(emptysax,NULL,buffer,bytes_read,"abracabadra",0); //file name is irrelevant abracabadra
-		
-		while ( (bytes_read=pread(remote_fd,buffer,sizeof(buffer),offset)) > 0) 	{
-			htmlParseChunk(ctxt,buffer,bytes_read,0);
-		}
-		htmlParseChunk(ctxt,buffer,0,1);
+		htmlParseChunk(ctxt, buffer, bytes_read, 0);
 		doc = ctxt->myDoc;
 		htmlFreeParserCtxt(ctxt);
 		if ( doc != NULL )

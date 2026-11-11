@@ -21,6 +21,8 @@
 #include <sys/stat.h>
 #include <netdb.h>
 
+#include <curl/curl.h>
+
 #include <hurd/hurd_types.h>
 
 #include "config.h"
@@ -92,7 +94,7 @@ error_t lookup_host (char *url, struct hostent **ent);
 
 /* store the remote socket in *FD and establish the connection and send the 
  * http GET request */
-error_t open_connection(struct netnode *node, int *fd,off_t *head_len);
+error_t open_connection(struct netnode *node, char *buffer, loff_t offset, off_t *head_len);
 
 /* make an instance of `struct netnode' with the specified parameters,
  * return NULL on error */

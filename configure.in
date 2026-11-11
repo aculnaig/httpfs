@@ -4,9 +4,10 @@ AM_INIT_AUTOMAKE
 
 AC_PROG_CC
 
+PKG_CHECK_MODULES([CURL], [libcurl >= 7.0.0])
 PKG_CHECK_MODULES(HTTPFS, libxml-2.0)
 
-HTTPFS_SHARED_LIBS="-lxml2 -lpthread -lnetfs -lfshelp -lports -liohelp -lshouldbeinlibc -lhurdbugaddr"
+HTTPFS_SHARED_LIBS="-lcurl -lxml2 -lpthread -lnetfs -lfshelp -lports -liohelp -lshouldbeinlibc -lhurdbugaddr"
 AC_SUBST([HTTPFS_SHARED_LIBS])
 
 # Optional test suite integration (auto-enabled if dependencies are found)

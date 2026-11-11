@@ -464,18 +464,16 @@ error_t netfs_attempt_readlink (struct iouser *user, struct node *node,
 error_t netfs_attempt_read (struct iouser *cred, struct node *node,
           		loff_t offset, size_t *len, void *data)
 {
-	error_t err;
-	static int remote_fd;
+	error_t err = 0;
 	char buffer[4096];
 	int bytes_read;
 	off_t head_len;
 
 	if ( offset==0) {
-	err = open_connection (node->nn, &remote_fd,&head_len);
+	err = open_connection (node->nn, buffer, offset, &head_len);
 	if (err)
 		return err;
-	bytes_read = pread(remote_fd, buffer, sizeof(buffer), offset);
-	memcpy(data,(void *)(buffer+head_len),sizeof(buffer)-(sizeof(char)*head_len));
+	bytes_read = strlen(buffer) + head_len;
 	if (bytes_read < 0)
 		err = errno;
 	else {
@@ -486,8 +484,7 @@ error_t netfs_attempt_read (struct iouser *cred, struct node *node,
 	}
 
 	else {
-		bzero(buffer,sizeof(buffer));
-		bytes_read = pread(remote_fd, data, sizeof(buffer), offset);
+		bytes_read = strlen(buffer) + head_len;
 		if (bytes_read < 0)
 			err = errno;
 		else {

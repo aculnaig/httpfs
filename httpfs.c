@@ -35,12 +35,19 @@ main (int argc, char **argv)
   error_t err;
   mach_port_t bootstrap;
   char *temp_url, *temp, *run;
+  int is_https = 0;
   char type;
   char *comm_buf; /* XXX: Is an http request limited to 200 bytes? */
   port = 80;
   debug_flag = 0;
   mode = 1;			/* means directory */
   ip_addr = strdup ("0.0.0.0");
+
+  CURLcode curl_err = CURLE_OK;
+  curl_err = curl_global_init(CURL_GLOBAL_ALL);
+  if (curl_err != CURLE_OK) {
+    error (1, 0, "libcurl cannot be initialized.");
+  }
 
   if (debug_flag)
     fprintf (stderr, "pid %d\n", getpid ());
@@ -65,9 +72,17 @@ main (int argc, char **argv)
   if (! temp_url)
     error (1, errno, "Cannot duplicate url.");
 
-  if (!strncmp (temp_url, "http://", 7))
+  if (!strncmp (temp_url, "http://", 7)) {
     /* go ahead of http:// if given in url */
     temp_url = temp_url + 7;
+    is_https = 0;
+  } else if (!strncmp (temp_url, "https://", 8)) {
+    /* go ahead of https:// if given in url */
+    temp_url = temp_url + 8;
+    is_https = 1;
+    port = 443;
+  }
+    
 
   if (strchr (temp_url, '/') == NULL)
     error (1, 0, "Url must have a /, e.g., www.gnu.org/");
@@ -104,7 +119,12 @@ main (int argc, char **argv)
       dir_tok[no_of_slashes] = strdup ("index.html");
     }
 
-  strcpy (conn_req, "http://");
+  if (is_https) {
+    strcpy (conn_req, "https://");
+  } else {
+    strcpy (conn_req, "http://");
+  }
+
   if (temp_url[strlen (temp_url) - 1] == '/')
     {
       strcat (conn_req, temp_url);
@@ -140,20 +160,8 @@ main (int argc, char **argv)
 
   /* XXX: why is tmp hardcoded? */
   httpfs->root = httpfs_make_node (type, url, conn_req, comm_buf, "tmp");
+  httpfs->root->nn->type = HTTP_DIR_NOT_FILLED;
   netfs_init ();
-  /* translator set to a directory */
-  if (mode)
-    {
-      /* fill the directory node with files 
-       * call parser for that 
-       * only the current directory is filled
-       * subdirectories within them are indicated by type
-       * HTTP_DIR_UNFILLED, and are filled as on demand when an
-       * ls request comes for them */
-      err = parse (httpfs->root->nn);
-      if (err)
-	error (1, err, "Error in Parsing.");
-    }
 
   if (debug_flag)
     fprintf (stderr, "entering the main loop\n");
@@ -165,5 +173,6 @@ main (int argc, char **argv)
 
   /* NOT REACHED */
   free (httpfs);
+  curl_global_cleanup();
   return 0;
 }

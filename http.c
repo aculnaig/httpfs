@@ -34,140 +34,100 @@
 #include <hurd/hurd_types.h>
 #include <hurd/netfs.h>
 
-/* do a DNS lookup for NAME and store result in *ENT */
-error_t lookup_host (char *url, struct hostent **ent) 
+struct curl_read_request {
+	char *buffer;
+	loff_t offset;
+};
+
+static size_t curl_write_response_to_buffer(char *data, size_t size, size_t nmemb, void *userdata)
 {
-	if ( (*ent = gethostbyname(url)) == NULL )
-	{
-		fprintf(stderr,"wrong host name\n");
-		return EINVAL;
+	struct curl_read_request *request = (struct curl_read_request *) userdata;
+	if (!request) {
+		return 0;
 	}
-	return 0;
+
+	size_t total_size = size * nmemb - request->offset;
+	if (total_size == 0) {
+		return 0;
+	}
+
+	memcpy(request->buffer, data + request->offset, total_size);
+	
+	return total_size;
 }
 
 /* open a connection with the remote web server */
-error_t open_connection(struct netnode *node, int *fd,off_t *head_len) 
+error_t open_connection(struct netnode *node, char *buffer, loff_t offset, off_t *head_len) 
 {
 	/* HTTP GET command returns head and body so we have to prune the
 	 * head. *HEAD_LEN indicates the header length, for pruning upto that */
-	
-	error_t err;
-	struct hostent *hptr;
-	struct sockaddr_in dest;
-	ssize_t written;
-	size_t towrite;
-	char buffer[4096];
-	ssize_t bytes_read;
-	char *token,*mesg;
-	int code;
-	char delimiters0[] = " ";
-	char delimiters1[] = "\n";
+	error_t err = 0;
+	long http_status_code = 200;
+	double http_content_length = 0.0f;
+	CURLcode curl_err = CURLE_OK;
+	struct curl_read_request *request;
 
-	bzero(&dest,sizeof(dest));
-	dest.sin_family = AF_INET;
-	dest.sin_port = htons (port);
+	request = malloc(sizeof(struct curl_read_request));
+	memset(request, 0, sizeof(struct curl_read_request));
+	request->buffer = buffer;
+	request->offset = offset;
 
-	if ( !strcmp(ip_addr,"0.0.0.0") )
-	{
-		/* connection is not through a proxy server
-		 * find IP addr. of remote server */
-		err = lookup_host (node->url, &hptr);
-		if (err)
-		{
-			fprintf(stderr,"Could not find IP addr %s\n",node->url);
-			return err;
-		}
-		dest.sin_addr = *(struct in_addr *)hptr->h_addr;
+	CURL *curl = curl_easy_init();
+	if (!curl) {
+		return (err = ENOMEM);
 	}
-	else
-	{
-		/* connection is through the proxy server
-		 * need not find IP of remote server
-	         * find IP of the proxy server */
-		if ( inet_aton(ip_addr,&dest.sin_addr) == 0 )
-		{
-			fprintf(stderr,"Invalid IP for proxy\n");
-			return -1;
-		}
+
+	if (!strcmp(ip_addr, "0.0.0.0")) {
+		/* Connection is not through a proxy server. Do nothing. */
+	} else {
+		/* Connection is through a proxy server. */
+		curl_easy_setopt(curl, CURLOPT_PROXY, ip_addr);
 	}
+
+	curl_easy_setopt(curl, CURLOPT_URL, node->url);
+	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_response_to_buffer);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, request);
+	curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
 
 	if (debug_flag)
-		fprintf (stderr, "trying to open %s:%d/%s\n", node->url,
-				port, node->conn_req);
+		fprintf (stderr, "trying to open %s:%d\n", node->url,
+				port);
 
-	*fd = socket (AF_INET, SOCK_STREAM, 0);
-	if (*fd == -1)
-	{
-		fprintf(stderr,"Socket creation error\n");
-		return errno;
-	}
-
-	err = connect (*fd, (struct sockaddr *)&dest, sizeof (dest));
-	if (err == -1)
-	{
-		fprintf(stderr,"Cannot connect to remote host\n");
-		return errno;
+	curl_err = curl_easy_perform(curl);
+	if (curl_err != CURLE_OK) {
+		fprintf (stderr, "curl_easy_perform(): %s\n", curl_easy_strerror(curl_err));
+		err = EAGAIN;
+		goto cleanup;
 	}
 
-	/* Send a HEAD request find header length */
-	sprintf(buffer,"HEAD %s HTTP/1.0\r\nHost: %s\r\n\r\n",node->conn_req,node->url);
-	towrite = strlen (buffer);
-	written = TEMP_FAILURE_RETRY (write (*fd, buffer, towrite));
-	if ( written == -1 || written < towrite )
-	{
-		fprintf(stderr,"Could not send an HTTP request to host\n");
-		return errno;
-	}
-	
-	bytes_read = read(*fd,buffer,sizeof(buffer));
-	if ( bytes_read < 0 ) 
-	{
-		fprintf(stderr,"Error with HEAD read\n");
-		return errno;
+	curl_err = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_status_code);
+	if (curl_err != CURLE_OK) {
+		fprintf(stderr, "Cannot get HTTP status code: %s\n", curl_easy_strerror(curl_err));
+		err = EAGAIN;
+		goto cleanup;
+	} else if (http_status_code != 200) {
+		fprintf(stderr, "HTTP status code is: %ld\n", http_status_code);
+		err = EIO;
+		goto cleanup;
 	}
 
-	*head_len = bytes_read;
-	token = strtok(buffer,delimiters0);
-	token = strtok(NULL,delimiters0);
-	sscanf(token,"%d",&code);
-	token = strtok(NULL,delimiters1);
-	mesg = strdup(token);
-	if ( code != 200 ) 
-	{
-		/* page does not exist */
-		fprintf(stderr,"Error Page not Accesible\n");
-		fprintf(stderr,"%d %s\n",code,mesg);
-		return EBADF;
-	}
-	
-	close(*fd);
-	
-	/* Send the GET request for the url */
-	*fd = socket (AF_INET, SOCK_STREAM, 0);
-	if (*fd == -1)
-	{
-		fprintf(stderr,"Socket creation error\n");
-		return errno;
+	curl_err = curl_easy_getinfo(curl, CURLINFO_CONTENT_LENGTH_DOWNLOAD_T, &http_content_length);
+	if (curl_err != CURLE_OK) {
+		fprintf(stderr, "Could not determine HTTP content length: %s\n", curl_easy_strerror(curl_err));
+		err = EIO;
+		goto cleanup;
 	}
 
-	err = connect (*fd, (struct sockaddr *)&dest, sizeof (dest));
-	if (err == -1)
-	{
-		fprintf(stderr,"Cannot connect to remote host\n");
-		return errno;
-	}
+	*head_len = (off_t) http_content_length;
 
-	towrite = strlen (node->comm_buf);
+	err = 0;
+	goto cleanup;
 
-	/* guard against EINTR failures */
-	written = TEMP_FAILURE_RETRY (write (*fd, node->comm_buf, towrite));
-	written += TEMP_FAILURE_RETRY (write (*fd, "\n\n",  2));
-	if (written == -1 || written < (towrite+2)) 
-	{
-		fprintf(stderr,"Could not send GET request to remote host\n");
-		return errno;
-	}
-	return 0;
+	cleanup:
+		free(request);
+		curl_easy_cleanup(curl);
+		return err;
 }
 
 /* fetch a directory node from the web server
